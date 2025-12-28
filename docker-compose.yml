@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pennyweis-trading-postgres
+    environment:
+      POSTGRES_DB: pennyweis_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - pennyweis-network
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: pennyweis-timescaledb
+    environment:
+      POSTGRES_DB: market_data
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    networks:
+      - pennyweis-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: pennyweis-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - pennyweis-network
+
+
+volumes:
+  postgres_data:
+  timescale_data:
+  redis_data:
+
+networks:
+  pennyweis-network:
+    driver: bridge
