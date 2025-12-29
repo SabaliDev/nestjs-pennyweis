@@ -8,6 +8,7 @@ export class BinanceWsService implements OnModuleDestroy {
     private wsMap: Record<string, WebSocket> = {};
     public tradeStream$ = new Subject<any>();
     public depthStream$ = new Subject<any>();
+    public klineStream$ = new Subject<any>();
 
     onModuleDestroy() {
         Object.values(this.wsMap).forEach(ws => {
@@ -74,6 +75,38 @@ export class BinanceWsService implements OnModuleDestroy {
 
         ws.on('close', () => {
             this.logger.log(`Depth WS Closed for ${symbol}`);
+            delete this.wsMap[key];
+        });
+
+        this.wsMap[key] = ws;
+    }
+
+    connectKline(symbol: string, interval: string) {
+        const key = `${symbol}_kline_${interval}`;
+        if (this.wsMap[key]) return;
+
+        this.logger.log(`Connecting to Binance Kline WS for ${symbol} ${interval}`);
+        const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`);
+
+        ws.on('open', () => {
+            this.logger.log(`Connected to Kline WS for ${symbol} ${interval}`);
+        });
+
+        ws.on('message', (msg) => {
+            try {
+                const data = JSON.parse(msg.toString());
+                this.klineStream$.next(data);
+            } catch (e) {
+                this.logger.error('Error parsing kline message', e);
+            }
+        });
+
+        ws.on('error', (err) => {
+            this.logger.error(`Kline WS Error for ${symbol} ${interval}`, err);
+        });
+
+        ws.on('close', () => {
+            this.logger.log(`Kline WS Closed for ${symbol} ${interval}`);
             delete this.wsMap[key];
         });
 

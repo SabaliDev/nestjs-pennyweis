@@ -46,7 +46,7 @@ npm run start:dev
 
 5. Open your browser and navigate to:
 - API: http://localhost:3000
-- Documentation: http://localhost:3000/api/docs
+- Documentation: http://localhost:8080/api/docs
 
 ## Available Scripts
 

@@ -18,7 +18,7 @@ export class OrderService {
   constructor(
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
-  ) {}
+  ) { }
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
     const order = this.orderRepository.create({
@@ -37,7 +37,7 @@ export class OrderService {
 
   async findOrderById(orderId: string): Promise<Order> {
     const order = await this.orderRepository.findOne({ where: { id: orderId } });
-    
+
     if (!order) {
       throw new NotFoundException('Order not found');
     }
@@ -71,7 +71,7 @@ export class OrderService {
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
     const order = await this.findOrderById(orderId);
-    
+
     // Validate status transition
     if (!this.canTransitionStatus(order.status, status)) {
       throw new Error(`Invalid status transition from ${order.status} to ${status}`);
@@ -83,13 +83,13 @@ export class OrderService {
 
   async fillOrder(orderId: string, fillQuantity: string): Promise<Order> {
     const order = await this.findOrderById(orderId);
-    
+
     const currentFilled = new Decimal(order.filledQuantity);
     const fillAmount = new Decimal(fillQuantity);
     const totalQuantity = new Decimal(order.quantity);
-    
+
     const newFilledQuantity = currentFilled.plus(fillAmount);
-    
+
     if (newFilledQuantity.greaterThan(totalQuantity)) {
       throw new Error('Fill quantity exceeds remaining order quantity');
     }
@@ -108,8 +108,8 @@ export class OrderService {
 
   async getActiveOrders(symbol?: string) {
     const query = this.orderRepository.createQueryBuilder('order')
-      .where('order.status IN (:...statuses)', { 
-        statuses: [OrderStatus.NEW, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED] 
+      .where('order.status IN (:...statuses)', {
+        statuses: [OrderStatus.NEW, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED]
       })
       .orderBy('order.createdAt', 'DESC');
 
@@ -122,8 +122,8 @@ export class OrderService {
 
   async getOrderBook(symbol: string) {
     const orders = await this.orderRepository.find({
-      where: { 
-        symbol, 
+      where: {
+        symbol,
         status: OrderStatus.OPEN,
       },
       order: { price: 'ASC' },
@@ -175,7 +175,7 @@ export class OrderService {
   private canTransitionStatus(currentStatus: OrderStatus, newStatus: OrderStatus): boolean {
     const validTransitions: Record<OrderStatus, OrderStatus[]> = {
       [OrderStatus.NEW]: [OrderStatus.OPEN, OrderStatus.CANCELLED, OrderStatus.REJECTED],
-      [OrderStatus.OPEN]: [OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED, OrderStatus.CANCELLED],
+      [OrderStatus.OPEN]: [OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
       [OrderStatus.PARTIALLY_FILLED]: [OrderStatus.FILLED, OrderStatus.CANCELLED],
       [OrderStatus.FILLED]: [],
       [OrderStatus.CANCELLED]: [],

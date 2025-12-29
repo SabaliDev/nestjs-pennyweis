@@ -12,7 +12,7 @@ export class WalletService {
     private walletRepository: Repository<Wallet>,
     @InjectRepository(WalletTransaction)
     private transactionRepository: Repository<WalletTransaction>,
-  ) {}
+  ) { }
 
   async getUserWallets(userId: string) {
     return this.walletRepository.find({
@@ -79,14 +79,24 @@ export class WalletService {
     description?: string,
     referenceId?: string,
   ) {
-    const wallet = await this.getWalletByCurrency(userId, currency);
-    
+    let wallet;
+    try {
+      wallet = await this.getWalletByCurrency(userId, currency);
+    } catch (error) {
+      if (error instanceof NotFoundException && new Decimal(amount).greaterThan(0)) {
+        // Auto-create wallet if we are adding funds
+        wallet = await this.createWallet(userId, currency, '0');
+      } else {
+        throw error;
+      }
+    }
+
     const currentBalance = new Decimal(wallet.balance);
     const changeAmount = new Decimal(amount);
     const newBalance = currentBalance.plus(changeAmount);
 
     if (newBalance.lessThan(0)) {
-      throw new BadRequestException('Insufficient balance');
+      throw new BadRequestException(`Insufficient ${currency} balance`);
     }
 
     const balanceBefore = wallet.balance;
@@ -118,7 +128,7 @@ export class WalletService {
 
   async lockBalance(userId: string, currency: string, amount: string) {
     const wallet = await this.getWalletByCurrency(userId, currency);
-    
+
     const availableBalance = new Decimal(wallet.balance).minus(new Decimal(wallet.lockedBalance));
     const lockAmount = new Decimal(amount);
 
@@ -127,13 +137,13 @@ export class WalletService {
     }
 
     wallet.lockedBalance = new Decimal(wallet.lockedBalance).plus(lockAmount).toString();
-    
+
     return this.walletRepository.save(wallet);
   }
 
   async unlockBalance(userId: string, currency: string, amount: string) {
     const wallet = await this.getWalletByCurrency(userId, currency);
-    
+
     const lockedBalance = new Decimal(wallet.lockedBalance);
     const unlockAmount = new Decimal(amount);
 
@@ -142,7 +152,7 @@ export class WalletService {
     }
 
     wallet.lockedBalance = lockedBalance.minus(unlockAmount).toString();
-    
+
     return this.walletRepository.save(wallet);
   }
 
@@ -166,8 +176,15 @@ export class WalletService {
   }
 
   async getAvailableBalance(userId: string, currency: string): Promise<string> {
-    const wallet = await this.getWalletByCurrency(userId, currency);
-    return new Decimal(wallet.balance).minus(new Decimal(wallet.lockedBalance)).toString();
+    try {
+      const wallet = await this.getWalletByCurrency(userId, currency);
+      return new Decimal(wallet.balance).minus(new Decimal(wallet.lockedBalance)).toString();
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return '0';
+      }
+      throw error;
+    }
   }
 
   private async createTransaction(

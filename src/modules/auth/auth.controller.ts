@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, ConflictException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, ConflictException, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -44,7 +44,7 @@ export class AuthController {
     private authService: AuthService,
     private walletService: WalletService,
     private passwordService: PasswordService,
-  ) {}
+  ) { }
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
@@ -52,40 +52,41 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid registration data' })
   async register(@Body() registerDto: RegisterDto) {
     // Validate password strength
-    
+
     const passwordValidation = this.passwordService.validatePasswordStrength(registerDto.password);
     if (!passwordValidation.isValid) {
-      return {
+      throw new BadRequestException({
         success: false,
+        message: 'Password validation failed',
         errors: passwordValidation.errors,
-      };
+      });
     }
 
     try {
       const result = await this.authService.register(registerDto);
-         const wallet = await this.walletService.createWallet(
+      const wallet = await this.walletService.createWallet(
         result.user.id,
         "USD",
         "10000",
       );
       return {
         success: true,
-        data: {result}
+        data: result
       };
-    } 
-     catch (error) {
-    if (error.code === '23505') { // Postgres unique violation
-      if (error.constraint?.includes('email')) {
-        throw new ConflictException('Email already exists');
-      }
-      if (error.constraint?.includes('username')) {
-        throw new ConflictException('Username already taken');
-      }
-      throw new ConflictException('User already exists');
     }
-    throw error; // Re-throw unknown errors
+    catch (error) {
+      if (error.code === '23505') { // Postgres unique violation
+        if (error.constraint?.includes('email')) {
+          throw new ConflictException('Email already exists');
+        }
+        if (error.constraint?.includes('username')) {
+          throw new ConflictException('Username already taken');
+        }
+        throw new ConflictException('User already exists');
+      }
+      throw error; // Re-throw unknown errors
+    }
   }
-    }
 
 
   @UseGuards(AuthGuard('local'))
