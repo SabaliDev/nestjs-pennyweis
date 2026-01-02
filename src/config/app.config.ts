@@ -59,8 +59,16 @@ export interface AppConfiguration {
 
 export const AppConfig = registerAs('app', (): AppConfiguration => ({
   server: {
-    host: process.env.SERVER_HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1'),
-    port: parseInt(process.env.PORT || process.env.SERVER_PORT || '3000', 10),
+    host: (() => {
+      const host = process.env.SERVER_HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
+      console.log(`🌐 Server: Host configured as ${host}`);
+      return host;
+    })(),
+    port: (() => {
+      const port = parseInt(process.env.PORT || process.env.SERVER_PORT || '3000', 10);
+      console.log(`🌐 Server: Port configured as ${port}`);
+      return port;
+    })(),
     corsOrigins: process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(',')
       : ['http://localhost:3000'],

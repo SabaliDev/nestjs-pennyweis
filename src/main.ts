@@ -6,6 +6,7 @@ import { WsAdapter } from '@nestjs/platform-ws';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  console.log(`🚀 Process starting with NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);

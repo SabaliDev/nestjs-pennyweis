@@ -23,8 +23,12 @@ export type DatabaseConfiguration = TypeOrmModuleOptions & {
 }
 
 export const DatabaseConfig = registerAs('database', (): DatabaseConfiguration => {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const isProduction = nodeEnv === 'production';
   const url = process.env.DATABASE_URL;
+
+  console.log(`🌍 Environment: ${nodeEnv}`);
+  console.log(`📡 DB Env Check: DATABASE_URL=${!!url}, DB_HOST=${!!process.env.DB_HOST}, PGHOST=${!!process.env.PGHOST}`);
 
   let config: Partial<DatabaseConfiguration> = {};
 
@@ -32,12 +36,17 @@ export const DatabaseConfig = registerAs('database', (): DatabaseConfiguration =
     console.log('📡 Database: Connecting via DATABASE_URL');
     config = { url };
   } else {
-    const host = process.env.DB_HOST || process.env.PGHOST || 'localhost';
+    const host = process.env.DB_HOST || process.env.PGHOST || (nodeEnv === 'development' ? 'localhost' : undefined);
     const port = parseInt(process.env.DB_PORT || process.env.PGPORT || '5432', 10);
-    console.log(`📡 Database: Connecting via coordinates -> ${host}:${port}`);
+
+    if (!host) {
+      console.error('❌ Database: NO CONNECTION HOST FOUND. Please set DATABASE_URL or DB_HOST.');
+    } else {
+      console.log(`📡 Database: Connecting via coordinates -> ${host}:${port}`);
+    }
 
     config = {
-      host,
+      host: host || 'localhost', // Fallback to avoid crash, but error logged above
       port,
       username: process.env.DB_USERNAME || process.env.PGUSER || 'postgres',
       password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'postgres',
