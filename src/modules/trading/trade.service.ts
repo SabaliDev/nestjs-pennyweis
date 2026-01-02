@@ -5,8 +5,8 @@ import { Trade } from '../../entities/trade.entity';
 import Decimal from 'decimal.js-light';
 
 interface CreateTradeDto {
-  buyOrderId: string;
-  sellOrderId: string;
+  buyOrderId: string | null;
+  sellOrderId: string | null;
   symbol: string;
   price: string;
   quantity: string;
@@ -18,7 +18,7 @@ export class TradeService {
   constructor(
     @InjectRepository(Trade)
     private tradeRepository: Repository<Trade>,
-  ) {}
+  ) { }
 
   async createTrade(createTradeDto: CreateTradeDto): Promise<Trade> {
     const notionalValue = new Decimal(createTradeDto.price)
@@ -38,7 +38,7 @@ export class TradeService {
   }
 
   async findTradeById(tradeId: string): Promise<Trade | null> {
-    return this.tradeRepository.findOne({ 
+    return this.tradeRepository.findOne({
       where: { id: tradeId },
       relations: ['buyOrder', 'sellOrder'],
     });
@@ -128,15 +128,15 @@ export class TradeService {
 
     const prices = trades.map(trade => new Decimal(trade.price));
     const volumes = trades.map(trade => new Decimal(trade.quantity));
-    
+
     const totalVolume = volumes.reduce((sum, vol) => sum.plus(vol), new Decimal(0));
     const high = prices.reduce((max, price) => price.greaterThan(max) ? price : max, prices[0]);
     const low = prices.reduce((min, price) => price.lessThan(min) ? price : min, prices[0]);
     const open = prices[0];
     const close = prices[prices.length - 1];
     const change = close.minus(open);
-    const changePercent = open.greaterThan(0) 
-      ? change.dividedBy(open).times(100) 
+    const changePercent = open.greaterThan(0)
+      ? change.dividedBy(open).times(100)
       : new Decimal(0);
 
     return {
