@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as WebSocket from 'ws';
 import { Subject } from 'rxjs';
 
@@ -6,9 +7,14 @@ import { Subject } from 'rxjs';
 export class BinanceWsService implements OnModuleDestroy {
     private readonly logger = new Logger(BinanceWsService.name);
     private wsMap: Record<string, WebSocket> = {};
+    private readonly wsBaseUrl: string;
     public tradeStream$ = new Subject<any>();
     public depthStream$ = new Subject<any>();
     public klineStream$ = new Subject<any>();
+
+    constructor(private configService: ConfigService) {
+        this.wsBaseUrl = this.configService.get<string>('app.binance.wsBaseUrl');
+    }
 
     onModuleDestroy() {
         Object.values(this.wsMap).forEach(ws => {
@@ -22,7 +28,7 @@ export class BinanceWsService implements OnModuleDestroy {
         if (this.wsMap[symbol]) return;
 
         this.logger.log(`Connecting to Binance Trade WS for ${symbol}`);
-        const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@trade`);
+        const ws = new WebSocket(`${this.wsBaseUrl}/${symbol.toLowerCase()}@trade`);
 
         ws.on('open', () => {
             this.logger.log(`Connected to Trade WS for ${symbol}`);
@@ -54,7 +60,7 @@ export class BinanceWsService implements OnModuleDestroy {
         if (this.wsMap[key]) return;
 
         this.logger.log(`Connecting to Binance Depth WS for ${symbol}`);
-        const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@depth20@100ms`);
+        const ws = new WebSocket(`${this.wsBaseUrl}/${symbol.toLowerCase()}@depth20@100ms`);
 
         ws.on('open', () => {
             this.logger.log(`Connected to Depth WS for ${symbol}`);
@@ -86,7 +92,7 @@ export class BinanceWsService implements OnModuleDestroy {
         if (this.wsMap[key]) return;
 
         this.logger.log(`Connecting to Binance Kline WS for ${symbol} ${interval}`);
-        const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`);
+        const ws = new WebSocket(`${this.wsBaseUrl}/${symbol.toLowerCase()}@kline_${interval}`);
 
         ws.on('open', () => {
             this.logger.log(`Connected to Kline WS for ${symbol} ${interval}`);

@@ -1,10 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
 @Injectable()
 export class BinanceService {
     private readonly logger = new Logger(BinanceService.name);
-    private baseUrl = 'https://api.binance.com/api/v3';
+    private readonly baseUrl: string;
+
+    constructor(private configService: ConfigService) {
+        this.baseUrl = this.configService.get<string>('app.binance.apiBaseUrl');
+    }
 
     async getPrice(symbol: string) {
         try {

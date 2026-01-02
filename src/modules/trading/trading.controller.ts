@@ -32,36 +32,65 @@ export class TradingController {
   @InjectRepository(Order)
   private orderRepo: Repository<Order>;
 
+  private resolveSymbol(pairOrSymbol: string): string {
+    if (!pairOrSymbol) return null;
+
+    // Check if it's a mapped pair like "BTC/USDT"
+    if (PAIRS[pairOrSymbol]) {
+      return PAIRS[pairOrSymbol];
+    }
+
+    // Check if it's already a raw symbol like "BTCUSDT" (exists as a value in PAIRS)
+    const rawSymbols = Object.values(PAIRS);
+    if (rawSymbols.includes(pairOrSymbol)) {
+      return pairOrSymbol;
+    }
+
+    // Attempt to handle cases where frontend might send "BTC-USDT" or similar
+    const normalized = pairOrSymbol.replace(/[^a-zA-Z]/g, '');
+    if (rawSymbols.includes(normalized)) {
+      return normalized;
+    }
+
+    return null;
+  }
+
   @Get('pairs')
   @ApiOperation({ summary: 'Get supported trading pairs' })
   getPairs() {
     return Object.keys(PAIRS);
   }
 
-  @Get('price/:pair')
+  @Get('price/:pair?')
   @ApiOperation({ summary: 'Get current price for a pair' })
-  @ApiParam({ name: 'pair', example: 'BTC/USDT' })
-  async getPrice(@Param('pair') pair: string) {
-    const symbol = PAIRS[pair];
+  @ApiParam({ name: 'pair', required: false, example: 'BTC/USDT' })
+  async getPrice(@Param('pair') pair?: string) {
+    if (!pair) {
+      throw new HttpException('Pair parameter is required (e.g., /price/BTCUSDT)', HttpStatus.BAD_REQUEST);
+    }
+    const symbol = this.resolveSymbol(pair);
     if (!symbol) {
-      throw new HttpException('Invalid pair', HttpStatus.BAD_REQUEST);
+      throw new HttpException(`Invalid pair or symbol: ${pair}`, HttpStatus.BAD_REQUEST);
     }
     return this.binance.getPrice(symbol);
   }
 
-  @Get('candles/:pair')
+  @Get('candles/:pair?')
   @ApiOperation({ summary: 'Get historical candlestick data' })
-  @ApiParam({ name: 'pair', example: 'BTC/USDT' })
+  @ApiParam({ name: 'pair', required: false, example: 'BTC/USDT' })
   @ApiQuery({ name: 'interval', required: false, example: '1m', description: 'Candle interval (1m, 5m, 1h, 1d)' })
   @ApiQuery({ name: 'limit', required: false, example: 500, description: 'Number of candles' })
   async getCandles(
-    @Param('pair') pair: string,
+    @Param('pair') pair?: string,
     @Query('interval') interval?: string,
     @Query('limit') limit?: number,
   ) {
-    const symbol = PAIRS[pair];
+    if (!pair) {
+      throw new HttpException('Pair parameter is required (e.g., /candles/BTCUSDT)', HttpStatus.BAD_REQUEST);
+    }
+    const symbol = this.resolveSymbol(pair);
     if (!symbol) {
-      throw new HttpException('Invalid pair', HttpStatus.BAD_REQUEST);
+      throw new HttpException(`Invalid pair or symbol: ${pair}`, HttpStatus.BAD_REQUEST);
     }
 
     // Validate interval - default to '1m' if invalid or undefined
@@ -72,17 +101,20 @@ export class TradingController {
     return this.binance.getCandles(symbol, safeInterval, safeLimit);
   }
 
-  @Get('depth/:pair')
+  @Get('depth/:pair?')
   @ApiOperation({ summary: 'Get order book depth' })
-  @ApiParam({ name: 'pair', example: 'BTC/USDT' })
+  @ApiParam({ name: 'pair', required: false, example: 'BTC/USDT' })
   @ApiQuery({ name: 'limit', required: false, example: 100, description: 'Depth limit (default 20, max 5000)' })
   async getDepth(
-    @Param('pair') pair: string,
+    @Param('pair') pair?: string,
     @Query('limit') limit = 100,
   ) {
-    const symbol = PAIRS[pair];
+    if (!pair) {
+      throw new HttpException('Pair parameter is required (e.g., /depth/BTCUSDT)', HttpStatus.BAD_REQUEST);
+    }
+    const symbol = this.resolveSymbol(pair);
     if (!symbol) {
-      throw new HttpException('Invalid pair', HttpStatus.BAD_REQUEST);
+      throw new HttpException(`Invalid pair or symbol: ${pair}`, HttpStatus.BAD_REQUEST);
     }
     return this.binance.getDepth(symbol, +limit);
   }

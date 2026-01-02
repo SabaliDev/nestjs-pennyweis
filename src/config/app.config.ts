@@ -40,6 +40,11 @@ export interface CoinGeckoConfig {
   retryDelayMs: number;
 }
 
+export interface BinanceConfig {
+  apiBaseUrl: string;
+  wsBaseUrl: string;
+}
+
 export interface JwtConfig {
   secret: string;
   accessTokenExpiryHours: number;
@@ -55,6 +60,7 @@ export interface AppConfiguration {
   features: FeatureConfig;
   coingecko: CoinGeckoConfig;
   jwt: JwtConfig;
+  binance: BinanceConfig;
 }
 
 export const AppConfig = registerAs('app', (): AppConfiguration => ({
@@ -113,5 +119,9 @@ export const AppConfig = registerAs('app', (): AppConfiguration => ({
     timeoutSecs: parseInt(process.env.COINGECKO_TIMEOUT_SECS || '10', 10),
     retryAttempts: parseInt(process.env.COINGECKO_RETRY_ATTEMPTS || '3', 10),
     retryDelayMs: parseInt(process.env.COINGECKO_RETRY_DELAY_MS || '1000', 10),
+  },
+  binance: {
+    apiBaseUrl: process.env.BINANCE_API_BASE_URL || 'https://api.binance.com/api/v3',
+    wsBaseUrl: process.env.BINANCE_WS_BASE_URL || 'wss://stream.binance.com:9443/ws',
   },
 }));
