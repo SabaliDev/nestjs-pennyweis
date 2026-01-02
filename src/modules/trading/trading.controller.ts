@@ -134,9 +134,9 @@ export class TradingController {
   @ApiOperation({ summary: 'Execute a persistent market order' })
   @ApiBody({ type: CreateMarketOrderDto })
   async marketOrder(@Request() req, @Body() body: CreateMarketOrderDto) {
-    const symbol = PAIRS[body.pair];
+    const symbol = this.resolveSymbol(body.pair);
     if (!symbol) {
-      throw new HttpException('Invalid pair', HttpStatus.BAD_REQUEST);
+      throw new HttpException(`Invalid pair or symbol: ${body.pair}`, HttpStatus.BAD_REQUEST);
     }
 
     const userId = req.user.id;
@@ -165,9 +165,9 @@ export class TradingController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Place a persistent limit order' })
   async limitOrder(@Request() req, @Body() body: { pair: string; side: OrderSide; size: number; price: number }) {
-    const symbol = PAIRS[body.pair];
+    const symbol = this.resolveSymbol(body.pair);
     if (!symbol) {
-      throw new HttpException('Invalid pair', HttpStatus.BAD_REQUEST);
+      throw new HttpException(`Invalid pair or symbol: ${body.pair}`, HttpStatus.BAD_REQUEST);
     }
 
     const userId = req.user.id;
@@ -186,6 +186,24 @@ export class TradingController {
       orderId: order.id,
       status: order.status
     };
+  }
+
+  @Post('place-order')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unified endpoint for placing orders' })
+  async placeOrder(@Request() req, @Body() body: { pair: string; side: OrderSide; size: any; price?: any; type: 'market' | 'limit' }) {
+    const { type, ...orderParams } = body;
+
+    // Convert size and price to numbers if they are strings
+    const size = typeof body.size === 'string' ? parseFloat(body.size) : body.size;
+    const price = typeof body.price === 'string' && body.price !== '' ? parseFloat(body.price) : body.price;
+
+    if (type === 'market') {
+      return this.marketOrder(req, { ...orderParams, size });
+    } else {
+      return this.limitOrder(req, { ...orderParams, size, price });
+    }
   }
 
   @Get('positions')
