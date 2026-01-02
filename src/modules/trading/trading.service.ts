@@ -88,9 +88,22 @@ export class TradingService {
     }
   }
 
-  async getPositions() {
-    // In a real system, positions are calculated from trades/balance.
-    // For now, we reuse the existing getPositions from wallet/portfolio or return something indicative.
-    return [];
+  async getPositions(userId: string) {
+    // Get all user wallets
+    const wallets = await this.walletService.getUserWallets(userId);
+
+    // Filter to only wallets with balance > 0 and format the response
+    const positions = wallets
+      .filter(wallet => parseFloat(wallet.balance) > 0)
+      .map(wallet => ({
+        currency: wallet.currency,
+        balance: wallet.balance,
+        lockedBalance: wallet.lockedBalance,
+        availableBalance: new Decimal(wallet.balance).minus(new Decimal(wallet.lockedBalance)).toString(),
+        totalDeposited: wallet.totalDeposited,
+        totalWithdrawn: wallet.totalWithdrawn,
+      }));
+
+    return positions;
   }
 }

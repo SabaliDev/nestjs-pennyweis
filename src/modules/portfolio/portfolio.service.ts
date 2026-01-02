@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Portfolio } from '../../entities/portfolio.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { BinanceService } from '../binance/binance.service';
+import { PredictionTradingService } from '../polymarket/prediction-trading.service';
 import Decimal from 'decimal.js-light';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class PortfolioService {
     private portfolioRepository: Repository<Portfolio>,
     private walletService: WalletService,
     private binanceService: BinanceService,
+    private predictionTradingService: PredictionTradingService,
   ) { }
 
   async getUserPortfolio(userId: string): Promise<Portfolio> {
@@ -81,6 +83,21 @@ export class PortfolioService {
             // Ignore if price not found
           }
         }
+      }
+
+      // Add Prediction Market Positions Value
+      try {
+        const predictionPositions = await this.predictionTradingService.getUserPredictionPositions(portfolio.userId);
+        for (const pos of predictionPositions) {
+          totalValue = totalValue.plus(new Decimal(pos.currentValue));
+          // Note: Prediction order cost is already deducted from USDT wallet,
+          // so we add the full current value as "unrealized" asset value.
+          // However, to avoid double counting 'cost' (which was USDT), we need to be careful.
+          // The USDT was SPENT, so it's gone from wallets.
+          // So adding currentValue here correctly represents the asset value replacing the cash.
+        }
+      } catch (error) {
+        console.warn('Failed to fetch prediction positions for portfolio update', error);
       }
 
       // Update portfolio values

@@ -5,6 +5,7 @@ import { PortfolioService } from './portfolio.service';
 import { Portfolio } from '../../entities/portfolio.entity';
 import { WalletModule } from '../wallet/wallet.module';
 import { BinanceModule } from '../binance/binance.module';
+import { PolymarketModule } from '../polymarket/polymarket.module';
 
 
 @Module({
@@ -12,6 +13,7 @@ import { BinanceModule } from '../binance/binance.module';
     TypeOrmModule.forFeature([Portfolio]),
     WalletModule,
     BinanceModule,
+    PolymarketModule,
   ],
   controllers: [PortfolioController],
   providers: [PortfolioService],

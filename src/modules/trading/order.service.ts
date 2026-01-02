@@ -120,6 +120,21 @@ export class OrderService {
     return query.getMany();
   }
 
+  async getUserActiveOrders(userId: string, symbol?: string) {
+    const query = this.orderRepository.createQueryBuilder('order')
+      .where('order.userId = :userId', { userId })
+      .andWhere('order.status IN (:...statuses)', {
+        statuses: [OrderStatus.NEW, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED]
+      })
+      .orderBy('order.createdAt', 'DESC');
+
+    if (symbol) {
+      query.andWhere('order.symbol = :symbol', { symbol });
+    }
+
+    return query.getMany();
+  }
+
   async getOrderBook(symbol: string) {
     const orders = await this.orderRepository.find({
       where: {

@@ -17,6 +17,8 @@ import { BinanceModule } from './modules/binance/binance.module';
 import { StocksModule } from './modules/stocks/stocks.module';
 import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { HealthModule } from './modules/health/health.module';
+import { PolymarketModule } from './modules/polymarket/polymarket.module';
+import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -54,6 +56,8 @@ import { HealthModule } from './modules/health/health.module';
     BinanceModule,
     StocksModule,
     PortfolioModule,
+    PolymarketModule,
+    LeaderboardModule,
   ],
 })
 export class AppModule { }

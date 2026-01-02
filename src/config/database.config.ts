@@ -13,6 +13,7 @@ import { WalletTransaction } from '../entities/wallet-transaction.entity';
 import { ApiKey } from '../entities/api-key.entity';
 import { UserSession } from '../entities/user-session.entity';
 import { OAuthProvider } from '../entities/oauth-provider.entity';
+import { PredictionOrder } from '../entities/prediction-order.entity';
 
 export type DatabaseConfiguration = TypeOrmModuleOptions & {
   maxConnections: number;
@@ -62,6 +63,7 @@ export const DatabaseConfig = registerAs('database', (): DatabaseConfiguration =
       ApiKey,
       UserSession,
       OAuthProvider,
+      PredictionOrder,
     ],
     synchronize: false,
     logging: false,

@@ -11,7 +11,7 @@ import { CreateMarketOrderDto } from './dto/create-market-order.dto';
 import { TradingGateway } from './trading.gateway';
 import { TradingEngineService } from './trading-engine.service';
 import { WalletService } from '../wallet/wallet.service';
-import { OrderSide, OrderType } from '../../entities/order.entity';
+import { OrderSide, OrderType, Order, OrderStatus } from '../../entities/order.entity';
 import { TransactionType } from '../../entities/wallet-transaction.entity';
 import { User, UserStatus } from '../../entities/user.entity';
 
@@ -27,6 +27,10 @@ export class TradingController {
     @InjectRepository(User)
     private userRepo: Repository<User>
   ) { }
+
+  // Inject OrderService for new endpoints
+  @InjectRepository(Order)
+  private orderRepo: Repository<Order>;
 
   @Get('pairs')
   @ApiOperation({ summary: 'Get supported trading pairs' })
@@ -144,9 +148,76 @@ export class TradingController {
   }
 
   @Get('positions')
-  @ApiOperation({ summary: 'Get current simulated positions (Mocked)' })
-  getPositions() {
-    return this.trading.getPositions();
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current positions (asset holdings)' })
+  async getPositions(@Request() req) {
+    const positions = await this.trading.getPositions(req.user.id);
+    return {
+      success: true,
+      data: positions,
+    };
+  }
+
+  @Get('orders')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all user orders' })
+  @ApiQuery({ name: 'symbol', required: false, description: 'Filter by symbol' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by status' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Number of orders to return' })
+  @ApiQuery({ name: 'offset', required: false, description: 'Offset for pagination' })
+  async getOrders(
+    @Request() req,
+    @Query('symbol') symbol?: string,
+    @Query('status') status?: OrderStatus,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const [orders, total] = await this.orderRepo.createQueryBuilder('order')
+      .where('order.userId = :userId', { userId: req.user.id })
+      .orderBy('order.createdAt', 'DESC')
+      .limit(limit ? parseInt(limit) : 50)
+      .offset(offset ? parseInt(offset) : 0)
+      .getManyAndCount();
+
+    return {
+      success: true,
+      data: {
+        orders,
+        total,
+        limit: limit ? parseInt(limit) : 50,
+        offset: offset ? parseInt(offset) : 0,
+      },
+    };
+  }
+
+  @Get('orders/active')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get active orders (NEW, OPEN, PARTIALLY_FILLED)' })
+  @ApiQuery({ name: 'symbol', required: false, description: 'Filter by symbol' })
+  async getActiveOrders(
+    @Request() req,
+    @Query('symbol') symbol?: string,
+  ) {
+    const query = this.orderRepo.createQueryBuilder('order')
+      .where('order.userId = :userId', { userId: req.user.id })
+      .andWhere('order.status IN (:...statuses)', {
+        statuses: [OrderStatus.NEW, OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED]
+      })
+      .orderBy('order.createdAt', 'DESC');
+
+    if (symbol) {
+      query.andWhere('order.symbol = :symbol', { symbol });
+    }
+
+    const orders = await query.getMany();
+
+    return {
+      success: true,
+      data: orders,
+    };
   }
 
   @Post('subscribe/:pair')

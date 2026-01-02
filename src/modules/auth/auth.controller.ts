@@ -64,11 +64,6 @@ export class AuthController {
 
     try {
       const result = await this.authService.register(registerDto);
-      const wallet = await this.walletService.createWallet(
-        result.user.id,
-        "USD",
-        "10000",
-      );
       return {
         success: true,
         data: result

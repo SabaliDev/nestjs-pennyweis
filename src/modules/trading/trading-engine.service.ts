@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, BadRequestException } from '@nestjs/common';
 import { BinanceWsService } from '../binance/binance.ws.service';
 import { OrderService } from './order.service';
 import { TradeService } from './trade.service';
