@@ -29,11 +29,16 @@ export const DatabaseConfig = registerAs('database', (): DatabaseConfiguration =
   let config: Partial<DatabaseConfiguration> = {};
 
   if (url) {
+    console.log('📡 Database: Connecting via DATABASE_URL');
     config = { url };
   } else {
+    const host = process.env.DB_HOST || process.env.PGHOST || 'localhost';
+    const port = parseInt(process.env.DB_PORT || process.env.PGPORT || '5432', 10);
+    console.log(`📡 Database: Connecting via coordinates -> ${host}:${port}`);
+
     config = {
-      host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || process.env.PGPORT || '5432', 10),
+      host,
+      port,
       username: process.env.DB_USERNAME || process.env.PGUSER || 'postgres',
       password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'postgres',
       database: process.env.DB_DATABASE || process.env.PGDATABASE || 'pennyweis_db',

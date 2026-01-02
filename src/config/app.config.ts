@@ -59,9 +59,9 @@ export interface AppConfiguration {
 
 export const AppConfig = registerAs('app', (): AppConfiguration => ({
   server: {
-    host: process.env.SERVER_HOST || '127.0.0.1',
-    port: parseInt(process.env.SERVER_PORT || '3000', 10),
-    corsOrigins: process.env.CORS_ORIGINS 
+    host: process.env.SERVER_HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1'),
+    port: parseInt(process.env.PORT || process.env.SERVER_PORT || '3000', 10),
+    corsOrigins: process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(',')
       : ['http://localhost:3000'],
     requestTimeoutSecs: parseInt(process.env.REQUEST_TIMEOUT_SECS || '30', 10),
@@ -98,8 +98,8 @@ export const AppConfig = registerAs('app', (): AppConfiguration => ({
     proBaseUrl: process.env.COINGECKO_PRO_BASE_URL || 'https://pro-api.coingecko.com/api/v3',
     websocketUrl: process.env.COINGECKO_WS_URL || 'wss://stream.coingecko.com/v1',
     rateLimitPerMinute: parseInt(
-      process.env.COINGECKO_RATE_LIMIT || 
-      (process.env.COINGECKO_USE_PRO === 'true' ? '500' : '30'), 
+      process.env.COINGECKO_RATE_LIMIT ||
+      (process.env.COINGECKO_USE_PRO === 'true' ? '500' : '30'),
       10
     ),
     timeoutSecs: parseInt(process.env.COINGECKO_TIMEOUT_SECS || '10', 10),
