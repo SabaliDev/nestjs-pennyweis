@@ -26,6 +26,7 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
       isGlobal: true,
       load: [AppConfig, DatabaseConfig, RedisConfig],
       envFilePath: ['.env.local', '.env'],
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
     }),
 
     TypeOrmModule.forRootAsync({

@@ -23,25 +23,20 @@ export type DatabaseConfiguration = TypeOrmModuleOptions & {
 }
 
 export const DatabaseConfig = registerAs('database', (): DatabaseConfiguration => {
+  const isProduction = process.env.NODE_ENV === 'production';
   const url = process.env.DATABASE_URL;
+
   let config: Partial<DatabaseConfiguration> = {};
 
   if (url) {
-    const urlObj = new URL(url);
-    config = {
-      host: urlObj.hostname,
-      port: parseInt(urlObj.port || '5432', 10),
-      username: urlObj.username,
-      password: urlObj.password,
-      database: urlObj.pathname.slice(1),
-    };
+    config = { url };
   } else {
     config = {
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'pennyweis_db',
+      host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || process.env.PGPORT || '5432', 10),
+      username: process.env.DB_USERNAME || process.env.PGUSER || 'postgres',
+      password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'postgres',
+      database: process.env.DB_DATABASE || process.env.PGDATABASE || 'pennyweis_db',
     };
   }
 
@@ -69,7 +64,7 @@ export const DatabaseConfig = registerAs('database', (): DatabaseConfiguration =
     logging: false,
     migrationsRun: false,
     migrationsTableName: '_sqlx_migrations',
-    ssl: false,
+    ssl: isProduction ? { rejectUnauthorized: false } : false,
     extra: {
       connectionLimit: parseInt(process.env.DB_MAX_CONNECTIONS || '10', 10),
     },
