@@ -19,6 +19,7 @@ import { PortfolioModule } from './modules/portfolio/portfolio.module';
 import { HealthModule } from './modules/health/health.module';
 import { PolymarketModule } from './modules/polymarket/polymarket.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
+import { MSEModule } from './modules/mse/mse.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
     PortfolioModule,
     PolymarketModule,
     LeaderboardModule,
+    MSEModule,
   ],
 })
 export class AppModule { }
